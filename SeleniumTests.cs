@@ -1,13 +1,15 @@
-using OpenQA.Selenium;
+
+
 using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium;
+using System.Data;
 
 namespace SeleniumTests
 {
     public class SeleniumTests
     {
-
         private WebDriver driver;
-        private const string baseUrl = "https://shorturl-1.itsageorgieva.repl.co/";
+        private const string baseUrl = "https://taskboard--itsageorgieva.repl.co/";
 
         [SetUp]
         public void OpenWebApp()
@@ -25,103 +27,106 @@ namespace SeleniumTests
         }
 
         [Test]
-        public void Test_TableTopLeftCell()
+        public void Test_TaskBoard_FirstDoneTaskTitle()
         {
-            //Navigate to ShortURL page
-            var linkShortUrl = driver.FindElement(By.LinkText("Short URLs"));
-            linkShortUrl.Click();
+            var taskBoardLink = driver.FindElement(By.LinkText("Task Board"));
+            taskBoardLink.Click();
 
-            var tableHeaderLeftCell = driver.FindElement(By.CssSelector("th:nth-child(1)"));
+            var doneTasksTable = driver.FindElements(By.CssSelector("body > main > div > div"));
+            var firstDoneTaskTable = doneTasksTable.Last();
 
-            Assert.That(tableHeaderLeftCell.Text, Is.EqualTo("Original URL"));
-        }
+            var firstDoneTaskTitle = firstDoneTaskTable.FindElement(By.CssSelector("tr.title > td"));
 
-        [Test]
-        public void Test_AddValidUrl()
-        {
-            var urlToAdd = "http://url" + DateTime.Now.Ticks + ".com";
 
-            //Navigate to Add URL page
-            var linkAddUrl = driver.FindElement(By.LinkText("Add URL"));
-            linkAddUrl.Click();
+            Assert.That(firstDoneTaskTitle.Text, Is.EqualTo("Project skeleton"));
 
-            var urlInput = driver.FindElement(By.Id("url"));
-            urlInput.SendKeys(urlToAdd);
-
-            var buttonCreate = driver.FindElement(By.XPath("//button[@type='submit']"));
-            buttonCreate.Click();
-
-            Assert.That(driver.PageSource.Contains(urlToAdd));
-
-            var tableLastRow = driver.FindElements(By.CssSelector("table > tbody > tr")).Last();
-            var tableLastRowFirstCell = tableLastRow.FindElements(By.CssSelector("td")).First();
-
-            Assert.That(tableLastRowFirstCell.Text, Is.EqualTo(urlToAdd));
 
         }
 
         [Test]
-        public void Test_AddInvalidUrl()
+        public void Test_SearchTask_ValidData()
         {
+            var searchLink = driver.FindElement(By.LinkText("Search"));
+            searchLink.Click();
 
-            //Navigate to Add URL page
-            var linkAddUrl = driver.FindElement(By.LinkText("Add URL"));
-            linkAddUrl.Click();
+            var searchInputField = driver.FindElement(By.Id("keyword"));
+            searchInputField.SendKeys("home");
 
-            var urlInput = driver.FindElement(By.Id("url"));
-            urlInput.SendKeys("alabala");
+            var searchButton = driver.FindElement(By.Id("search"));
+            searchButton.Click();
 
-            var buttonCreate = driver.FindElement(By.XPath("//button[@type='submit']"));
-            buttonCreate.Click();
+            var resultList = driver.FindElements(By.CssSelector("body > main > div.tasks-grid"));
+            var firstResultTable = resultList.First();
 
-            var labelErrorMessage = driver.FindElement(By.XPath("//div[@class='err']"));
-
-            Assert.That(labelErrorMessage.Text, Is.EqualTo("Invalid URL!"));
-
-            Assert.True(labelErrorMessage.Displayed);
+            var firstResultCellTitle = firstResultTable.FindElement(By.CssSelector("tr.title > td"));
+            Assert.That(firstResultCellTitle.Text, Is.EqualTo("Home page"));
 
         }
 
         [Test]
-        public void Test_VisitNonExistingURL()
+        public void Test_SearchTask_InvalidData()
         {
-            driver.Url = "http://shorturl.nakov.repl.co/go/invalid536524";
+            var searchLink = driver.FindElement(By.LinkText("Search"));
+            searchLink.Click();
 
-            var labelErrorMessage = driver.FindElement(By.XPath("//div[@class='err']"));
+            var keyword = "missing" + DateTime.Now.Ticks;
+            var searchInputField = driver.FindElement(By.Id("keyword"));
+            searchInputField.SendKeys(keyword);
 
-            Assert.That(labelErrorMessage.Text, Is.EqualTo("Cannot navigate to given short URL"));
+            var searchButton = driver.FindElement(By.Id("search"));
+            searchButton.Click();
 
-            Assert.True(labelErrorMessage.Displayed);
+            TimeSpan.FromSeconds(5);
+            var searchResultLabel = driver.FindElement(By.Id("searchResult"));
+            Assert.That(searchResultLabel.Text, Is.EqualTo("No tasks found."));
 
         }
 
         [Test]
-        public void Test_CounterIncreases()
+        public void Test_CreateTask_InvalidData()
         {
+            var createLink = driver.FindElement(By.LinkText("Create"));
+            createLink.Click();
 
-            //Navigate to Short URLs page
-            var linkShortUrls = driver.FindElement(By.XPath("//a[@href='/urls']"));
-            linkShortUrls.Click();
+            var createButton = driver.FindElement(By.Id("create"));
+            createButton.Click();
 
-            var tableFirstRow = driver.FindElements(By.CssSelector("table > tbody > tr")).First();
-            var tableFirstRowLastCell = tableFirstRow.FindElements(By.CssSelector("td")).Last();
+            //TimeSpan.FromSeconds(5);
+            var errorTextLabel = driver.FindElement(By.XPath("//div[@class='err']"));
+            Assert.That(errorTextLabel.Text, Is.EqualTo("Error: Title cannot be empty!"));
+            Assert.True(errorTextLabel.Displayed);
 
-            var oldCounter = int.Parse(tableFirstRowLastCell.Text);
+        }
 
-            var linkToClickCell = tableFirstRow.FindElements(By.CssSelector("td"))[1];
-            var linkToClick = linkToClickCell.FindElement(By.TagName("a"));
-            linkToClick.Click();
+        [Test]
+        public void Test_createcontacts_validData()
+        {
+            var createLink = driver.FindElement(By.LinkText("Create"));
+            createLink.Click();
 
-            driver.SwitchTo().Window(driver.WindowHandles[0]);
+            var title = "Title" + DateTime.Now.Ticks;
+            var description = "Some description " + DateTime.Now.Ticks;
+            
+            var titleInputField = driver.FindElement(By.Id("title"));
+            var descriptionInputField = driver.FindElement(By.Id("description"));
+            
+            titleInputField.SendKeys(title);
+            descriptionInputField.SendKeys(description);
 
-            driver.Navigate().Refresh();
+            var createButton = driver.FindElement(By.Id("create"));
+            createButton.Click();
 
-            tableFirstRow = driver.FindElements(By.CssSelector("table > tbody > tr")).First();
-            var newCounter = int.Parse(tableFirstRow.FindElements(By.CssSelector("td")).Last().Text);
+            //timespan.fromseconds(5);
 
-            Assert.That(newCounter, Is.EqualTo(oldCounter + 1));
+            var openTasksTable = driver.FindElements(By.CssSelector("body > main > div > div"));
+            var lastOpenTaskTable = openTasksTable.First();
 
-            //Assert.That(tableLastRowFirstCell.Text, Is.EqualTo(urlToAdd));
+            var lastOpenTaskTitle = lastOpenTaskTable.FindElements(By.CssSelector("tbody > tr.title > td")).Last();
+
+            Assert.That(lastOpenTaskTitle.Text, Is.EqualTo(title));
+
+            
+
 
         }
 
